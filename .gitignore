@@ -63,3 +63,12 @@ Thumbs.db
 *.mov
 *.wmv
 
+# Additional intermediate files.
+
+intermediate/
+modelstemp/
+realInfantIages/
+visualizations/
+data/
+log/
+__pycache__
