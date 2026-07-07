@@ -9,6 +9,8 @@ import os
 from collections import defaultdict
 from collections import OrderedDict
 
+from pathlib import Path
+
 import json_tricks as json
 
 import cv2
@@ -61,7 +63,20 @@ class PredictionDataset(Dataset):
         self.image_set = image_set
 
         self.output_path = cfg.OUTPUT_DIR
-        
+
+        # Adding intermediate bboxes and crops
+        import json
+        from pathlib import Path
+
+        # Root of the repository
+        self.intermediate_dir = Path(__file__).resolve().parents[2] / "intermediate"
+
+        self.crop_dir = self.intermediate_dir / "crops"
+        self.bbox_dir = self.intermediate_dir / "bbox"
+
+        self.crop_dir.mkdir(parents=True, exist_ok=True)
+        self.bbox_dir.mkdir(parents=True, exist_ok=True)
+                
         self.scale_factor = cfg.DATASET.SCALE_FACTOR
         self.rotation_factor = cfg.DATASET.ROT_FACTOR
         self.flip = cfg.DATASET.FLIP
@@ -141,6 +156,7 @@ class PredictionDataset(Dataset):
 
             db.append({
                 'image': impath,
+                'bbox': [x1, y1, x2, y2],
                 'center': center,
                 'scale': scale,
                 'joints_3d': joints_3d,
@@ -305,6 +321,26 @@ class PredictionDataset(Dataset):
             trans,
             (int(self.image_size[0]), int(self.image_size[1])),
             flags=cv2.INTER_LINEAR)
+        
+        
+        img_name = Path(image_file).name
+
+        crop = input.copy()
+
+        if self.color_rgb:
+            crop = cv2.cvtColor(crop, cv2.COLOR_RGB2BGR)
+
+        cv2.imwrite(str(self.crop_dir / img_name), crop)
+
+        bbox_info = {
+            "image": img_name,
+            "bbox": db_rec["bbox"],
+            "center": c.tolist(),
+            "scale": s.tolist()
+        }
+
+        with open(self.bbox_dir / f"{Path(img_name).stem}.json", "w") as f:
+            json.dump(bbox_info, f, indent=4)
 
         if self.transform:
             input = self.transform(input)
