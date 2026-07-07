@@ -3,6 +3,7 @@
 import json
 import argparse
 from pathlib import Path
+import shutil
 
 import cv2
 import numpy as np
@@ -18,6 +19,8 @@ IMAGE_DIR = ROOT / "data" / "custom" / "predict"
 BBOX_DIR = ROOT / "intermediate" / "bbox"
 OUTPUT_DIR = ROOT / "visualizations"
 
+KEYPOINT_DIR = ROOT / "intermediate" / "keypoints"
+KEYPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ------------------------------------------------------------
 # Automatically locate prediction json
@@ -74,6 +77,76 @@ for item in predictions:
 print(f"Loaded {len(prediction_dict)} predictions.")
 
 
+# ------------------------------------------------------------
+# Save one keypoint json per image
+# ------------------------------------------------------------
+
+repo_root = Path(__file__).resolve().parent.parent
+
+KEYPOINT_DIR = repo_root / "intermediate" / "keypoints"
+KEYPOINT_DIR.mkdir(parents=True, exist_ok=True)
+
+for image_id, pred in prediction_dict.items():
+
+    
+    annotations = pred["keypoints"][:]   # Copy the flat list
+
+    # Set every confidence value to 2.0
+    for i in range(2, len(annotations), 3):
+        annotations[i] = 2.0
+
+    annotation_info = {
+        "annotations": annotations
+    }
+    
+    out_file = KEYPOINT_DIR / f"{image_id}_keypoints.json"
+
+    with open(out_file, "w") as f:
+        json.dump(annotation_info, f)
+
+
+# ------------------------------------------------------------
+# Optionally copy to syn_generation
+# ------------------------------------------------------------
+
+syn_keypoint_dir = (
+    repo_root /
+    "syn_generation" /
+    "data" /
+    "keypoints"
+)
+
+if syn_keypoint_dir.exists():
+
+    for json_file in KEYPOINT_DIR.glob("*_keypoints.json"):
+        shutil.copy2(json_file, syn_keypoint_dir)
+
+    print(f"Copied {len(list(KEYPOINT_DIR.glob('*_keypoints.json')))} keypoint files to")
+    print(f"  {syn_keypoint_dir}")
+
+
+
+
+import shutil
+
+# Define the destination directory for synthetic images
+syn_image_dir = (
+    repo_root /
+    "syn_generation" /
+    "data" /
+    "images"
+)
+
+if syn_image_dir.exists():
+    # Find all .png and .jpg files in your source image directory
+    image_files = list(IMAGE_DIR.glob("*.png")) + list(IMAGE_DIR.glob("*.jpg"))
+    
+    # Copy each image to the destination
+    for img_file in image_files:
+        shutil.copy2(img_file, syn_image_dir)
+
+    print(f"Copied {len(image_files)} image files to")
+    print(f"  {syn_image_dir}")
 # ------------------------------------------------------------
 # Process every bbox json
 # ------------------------------------------------------------
