@@ -6,6 +6,7 @@ import sys
 import argparse
 import os
 import pprint
+import subprocess
 
 import torch
 import torch.nn.parallel
@@ -106,7 +107,9 @@ def main():
     # predict on dataset
     predict(cfg, valid_loader, valid_dataset, model_p,
              final_output_dir)
-             
+    
+    # Running the tools/visulizatons
+    subprocess.run([sys.executable, "tools/visualize_predictions.py"])
 
 if __name__ == '__main__':
     sys.argv = ['','--cfg', 'experiments/test-infant.yaml']
