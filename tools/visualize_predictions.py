@@ -15,9 +15,25 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 
+def clear_directory(directory):
+    directory = Path(directory)
+
+    if not directory.exists():
+        return
+
+    for item in directory.iterdir():
+        if item.is_file() or item.is_symlink():
+            item.unlink()
+        elif item.is_dir():
+            shutil.rmtree(item)
+
+
 IMAGE_DIR = ROOT / "data" / "custom" / "predict"
 BBOX_DIR = ROOT / "intermediate" / "bbox"
 OUTPUT_DIR = ROOT / "visualizations"
+
+clear_directory(ROOT / "intermediate" / "keypoints")
+clear_directory(ROOT / "visualizations")
 
 KEYPOINT_DIR = ROOT / "intermediate" / "keypoints"
 KEYPOINT_DIR.mkdir(parents=True, exist_ok=True)
@@ -105,8 +121,11 @@ for image_id, pred in prediction_dict.items():
         json.dump(annotation_info, f)
 
 
+
+
+
 # ------------------------------------------------------------
-# Optionally copy to syn_generation
+# syn_generation directories
 # ------------------------------------------------------------
 
 syn_keypoint_dir = (
@@ -116,26 +135,34 @@ syn_keypoint_dir = (
     "keypoints"
 )
 
-if syn_keypoint_dir.exists():
-
-    for json_file in KEYPOINT_DIR.glob("*_keypoints.json"):
-        shutil.copy2(json_file, syn_keypoint_dir)
-
-    print(f"Copied {len(list(KEYPOINT_DIR.glob('*_keypoints.json')))} keypoint files to")
-    print(f"  {syn_keypoint_dir}")
 
 
+# Create if they do not exist
+syn_keypoint_dir.mkdir(parents=True, exist_ok=True)
 
 
-import shutil
+# Remove old files from previous runs
+clear_directory(syn_keypoint_dir)
 
-# Define the destination directory for synthetic images
+
+# Copy keypoints to syn_generation
+for json_file in KEYPOINT_DIR.glob("*_keypoints.json"):
+    shutil.copy2(json_file, syn_keypoint_dir)
+
+print(f"Copied {len(list(KEYPOINT_DIR.glob('*_keypoints.json')))} keypoint files to")
+print(f"  {syn_keypoint_dir}")
+
+
 syn_image_dir = (
     repo_root /
     "syn_generation" /
     "data" /
     "images"
 )
+
+
+syn_image_dir.mkdir(parents=True, exist_ok=True)
+clear_directory(syn_image_dir)
 
 if syn_image_dir.exists():
     # Find all .png and .jpg files in your source image directory
@@ -147,6 +174,7 @@ if syn_image_dir.exists():
 
     print(f"Copied {len(image_files)} image files to")
     print(f"  {syn_image_dir}")
+
 # ------------------------------------------------------------
 # Process every bbox json
 # ------------------------------------------------------------
