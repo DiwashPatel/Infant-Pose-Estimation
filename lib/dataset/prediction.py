@@ -6,6 +6,7 @@ import copy
 import logging
 import random
 import os
+import shutil
 from collections import defaultdict
 from collections import OrderedDict
 
@@ -74,8 +75,11 @@ class PredictionDataset(Dataset):
         self.crop_dir = self.intermediate_dir / "crops"
         self.bbox_dir = self.intermediate_dir / "bbox"
 
-        self.crop_dir.mkdir(parents=True, exist_ok=True)
-        self.bbox_dir.mkdir(parents=True, exist_ok=True)
+        # Remove the old crops and bboxes if any. Create fresh folders for themm
+        for d in [self.crop_dir, self.bbox_dir]:
+            if d.exists():
+                shutil.rmtree(d)
+            d.mkdir(parents=True, exist_ok=True)
                 
         self.scale_factor = cfg.DATASET.SCALE_FACTOR
         self.rotation_factor = cfg.DATASET.ROT_FACTOR
